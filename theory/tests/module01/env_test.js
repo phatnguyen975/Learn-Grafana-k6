@@ -10,7 +10,7 @@ export const options = {
   duration: "3s",
 };
 
-export default function () {
+export default function() {
   const url = `${PROTOCOL}://${DOMAIN}`;
   console.log(`Sending GET request to: ${url}`);
 

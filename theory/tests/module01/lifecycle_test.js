@@ -20,7 +20,7 @@ export function setup() {
 }
 
 // 3. VU STAGE
-export default function (data) {
+export default function(data) {
   console.log(`VU LOGIC: Requesting ${BASE_URL}${data.endpoint}`);
 
   // Perform the actual test action

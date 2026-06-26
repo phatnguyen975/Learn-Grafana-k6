@@ -14,7 +14,7 @@ Understanding how k6 works internally is crucial for writing high-performance te
 
 - **Go Backend:** Handles the heavy lifting. It manages network connections, concurrency (goroutines), and metric aggregation. This allows k6 to simulate tens of thousands of concurrent users (VUs) on a single machine with minimal resource consumption.
 - **JavaScript Runtime (ES6+):** Scripts are written in modern JavaScript. However, since it runs on Goja, NodeJS native modules (like `fs`, `path`, or `os`) are **not** supported natively. k6 provides its own built-in APIs for these purposes.
-- **k6 Enhancements:** Features improved memory management per VU, native support for ES modules (`import/export`), and a more robust extension ecosystem (xk6).
+- **k6 Enhancements:** Features improved memory management per VU, native support for ES modules (`import/export`), and a more robust extension ecosystem (`xk6`).
 
 ### 1.2. Environment Setup (Linux/Ubuntu Environment)
 
@@ -142,3 +142,145 @@ export default function () {
 ```
 
 **Run command (injecting variables via CLI):** `k6 run -e TARGET_DOMAIN=test.k6.io -e USE_HTTPS=true env_test.js`
+
+## 2. Building Robust HTTP/API Tests
+
+### 2.1. The `k6/http` Module: Crafting Requests
+
+At the core of API performance testing is the ability to accurately simulate client requests. k6 handles this via the `k6/http` module, which supports all standard HTTP methods.
+
+- **HTTP Methods:** `http.get()`, `http.post()`, `http.put()`, `http.del()`, `http.patch()`, and `http.options()`.
+- **Headers & Parameters:** Modern APIs require strict header definitions (e.g., `Content-Type`, `Authorization`). You pass these as the third argument in methods like `POST` or `PUT`, or the second argument in `GET`.
+- **Payloads:** Data sent in `POST` or `PUT` requests must be properly formatted. Use `JSON.stringify()` for `application/json` payloads, or pass a raw object for `application/x-www-form-urlencoded`.
+- **Batched Requests:** k6 allows concurrent request execution using `http.batch()`. This is useful for simulating parallel resource loading (e.g., fetching multiple images simultaneously) rather than sequential blocking requests.
+
+### 2.2. Validating Responses with `check`
+
+Sending a request is only half the job. We must verify the server responds correctly under load.
+
+- **The `check()` Function:** Unlike assertions in unit testing tools (which halt the script if they fail), k6 `check()` evaluates conditions and records the pass/fail rate **without** stopping the Virtual User execution.
+- **Common Validations:** Validating HTTP status codes (`res.status === 200`), checking response time (`res.timings.duration < 500`), and verifying response body content (`res.body.includes('success')`).
+
+### 2.3. Defining SLOs with `thresholds`
+
+Thresholds are the automated pass/fail criteria for your load test. They are crucial for integrating k6 into CI/CD pipelines.
+
+- **Mechanism:** If the performance metrics do not meet the defined thresholds, k6 will exit with a non-zero code, failing the CI/CD build.
+- **Syntax:** Defined in the `options` object. You specify a metric and a condition string (e.g., `'http_req_duration': ['p(95)<500']`).
+- **Abort on Fail:** You can configure thresholds to immediately abort the test if an error rate spikes unexpectedly, saving compute resources.
+
+### 2.4. Performance Metrics (Built-in vs. Custom)
+
+k6 automatically collects several built-in metrics, but you can also define custom ones to track specific business logic.
+
+- **Built-in Metrics:** `http_req_duration` (total time), `http_req_failed` (error rate), `http_reqs` (total requests/RPS), `vus` (active VUs), `iterations`.
+- **Custom Metrics:** Imported from `k6/metrics`.
+  - `Trend`: Calculates statistics (min, max, average, percentiles) for a series of values.
+  - `Rate`: Tracks the percentage of non-zero values (useful for tracking custom error rates).
+  - `Counter`: Sums values over time.
+  - `Gauge`: Stores the latest value (e.g., active server connections).
+
+### 2.5. Practical Exercises
+
+We will continue using `https://test-api.k6.io`, a dummy API provided by Grafana. To ensure smooth execution, ensure you are running these commands in your native Ubuntu shell environment.
+
+#### Exercise 1: Simulating an API Login Workflow with Checks
+
+This script demonstrates constructing a proper `POST` request with a JSON payload, setting headers, and validating the response.
+
+**File:** `api_login_test.js`
+
+```javascript
+import http from "k6/http";
+import { check, sleep } from "k6";
+
+export const options = {
+  vus: 5,
+  duration: "5s",
+};
+
+export default function () {
+  const url = "https://test-api.k6.io/user/register/";
+
+  // 1. Prepare Payload
+  // Using random data to avoid uniqueness constraints on the dummy server
+  const payload = JSON.stringify({
+    username: `testuser_${__VU}_${__ITER}`,
+    first_name: "Test",
+    last_name: "User",
+    email: `testuser_${__VU}_${__ITER}@example.com`,
+    password: "password123",
+  });
+
+  // 2. Prepare Headers
+  const params = {
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+  };
+
+  // 3. Execute POST Request
+  const res = http.post(url, payload, params);
+
+  // 4. Validate Response (Does not halt execution on failure)
+  check(res, {
+    "status is 201 Created": (r) => r.status === 201,
+    "has valid response body": (r) => r.body.length > 0,
+  });
+
+  sleep(1);
+}
+```
+
+**Run command:** `k6 run api_login_test.js`
+
+#### Exercise 2: Defining CI/CD Gates with Custom Metrics and Thresholds
+
+This script introduces custom metrics to isolate the measurement of a specific API endpoint and applies thresholds to automate pass/fail decisions.
+
+**File:** `thresholds_metrics_test.js`
+
+```javascript
+import http from "k6/http";
+import { check, sleep } from "k6";
+import { Trend, Rate } from "k6/metrics";
+
+// Define Custom Metrics outside the VU function (Init stage)
+const loginDuration = new Trend("custom_login_duration");
+const loginErrorRate = new Rate("custom_login_error_rate");
+
+export const options = {
+  vus: 10,
+  duration: "10s",
+  thresholds: {
+    // Built-in metric threshold: 95% of ALL requests must be below 500ms
+    http_req_duration: ["p(95)<500"],
+    // Built-in metric threshold: Error rate must be strictly less than 1%
+    http_req_failed: ["rate<0.01"],
+    // Custom metric threshold: The specific login action must be fast
+    custom_login_duration: ["p(95)<600", "p(99)<1000"],
+    // Abort test entirely if the custom error rate exceeds 5% immediately
+    custom_login_error_rate: [
+      { threshold: "rate<0.05", abortOnFail: true, delayAbortEval: "2s" },
+    ],
+  },
+};
+
+export default function () {
+  const url = "https://test-api.k6.io/public/crocodiles/1/";
+  const res = http.get(url);
+
+  const success = check(res, {
+    "status is 200": (r) => r.status === 200,
+  });
+
+  // Record data into custom metrics
+  loginDuration.add(res.timings.duration);
+  loginErrorRate.add(!success);
+
+  sleep(1);
+}
+```
+
+**Run command:** `k6 run thresholds_metrics_test.js`
