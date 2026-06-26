@@ -23,7 +23,7 @@ export const options = {
   },
 };
 
-export default function() {
+export default function () {
   const url = "https://test-api.k6.io/public/crocodiles/1/";
   const res = http.get(url);
 

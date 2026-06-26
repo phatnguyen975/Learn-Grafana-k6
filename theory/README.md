@@ -60,7 +60,7 @@ This is the most critical concept in k6. A test script goes through four distinc
    - Located in `export function teardown(data)`.
    - **Purpose:** Cleaning up the environment (e.g., deleting the test user created in `setup`).
 
-### 1.4. Practical Exercises (Best Practices)
+### 1.4. Practical Exercises
 
 We will use `https://test.k6.io`, a public domain maintained by Grafana specifically for testing k6 scripts safely.
 
@@ -182,13 +182,11 @@ k6 automatically collects several built-in metrics, but you can also define cust
 
 ### 2.5. Practical Exercises
 
-We will continue using `https://test-api.k6.io`, a dummy API provided by Grafana. To ensure smooth execution, ensure you are running these commands in your native Ubuntu shell environment.
-
 #### Exercise 1: Simulating an API Login Workflow with Checks
 
 This script demonstrates constructing a proper `POST` request with a JSON payload, setting headers, and validating the response.
 
-**File:** `api_login_test.js`
+**File:** `api_post_test.js`
 
 ```javascript
 import http from "k6/http";
@@ -200,19 +198,16 @@ export const options = {
 };
 
 export default function () {
-  const url = "https://test-api.k6.io/user/register/";
+  const url = "https://httpbin.org/post";
+  const uniqueId = `${Date.now()}_${__VU}_${__ITER}`;
 
-  // 1. Prepare Payload
-  // Using random data to avoid uniqueness constraints on the dummy server
   const payload = JSON.stringify({
-    username: `testuser_${__VU}_${__ITER}`,
+    username: `user_${uniqueId}`,
     first_name: "Test",
     last_name: "User",
-    email: `testuser_${__VU}_${__ITER}@example.com`,
-    password: "password123",
+    email: `user_${uniqueId}@example.com`,
   });
 
-  // 2. Prepare Headers
   const params = {
     headers: {
       "Content-Type": "application/json",
@@ -220,20 +215,31 @@ export default function () {
     },
   };
 
-  // 3. Execute POST Request
+  // Execute the POST request
   const res = http.post(url, payload, params);
 
-  // 4. Validate Response (Does not halt execution on failure)
+  // Validate the response with safe JSON parsing
   check(res, {
-    "status is 201 Created": (r) => r.status === 201,
-    "has valid response body": (r) => r.body.length > 0,
+    "status is 200 OK": (r) => r.status === 200,
+    "payload was received correctly": (r) => {
+      if (r.status === 200) {
+        try {
+          // Safe parse: prevents script crash if response body is malformed
+          const body = JSON.parse(r.body);
+          return body.json.username === `user_${uniqueId}`;
+        } catch (e) {
+          return false; // Fail the check gracefully if parsing fails
+        }
+      }
+      return false;
+    },
   });
 
   sleep(1);
 }
 ```
 
-**Run command:** `k6 run api_login_test.js`
+**Run command:** `k6 run api_post_test.js`
 
 #### Exercise 2: Defining CI/CD Gates with Custom Metrics and Thresholds
 
@@ -284,3 +290,125 @@ export default function () {
 ```
 
 **Run command:** `k6 run thresholds_metrics_test.js`
+
+## 3. Advanced Workload Modeling (Scenarios)
+
+### 3.1. The Paradigm Shift: Open vs. Closed Models
+
+To simulate realistic production traffic, k6 relies heavily on **Scenarios** and **Executors**. Before writing code, it is mandatory to understand the two foundational performance testing models. This is a critical concept for any Senior Performance Tester.
+
+- **Closed Workload Model (VU-Driven):** You control the concurrent Virtual Users (VUs). If the target server slows down, the VUs wait longer for responses, meaning the overall Request Per Second (RPS) _drops_. This model simulates a fixed number of users interacting with a system (e.g., 50 internal employees using a dashboard).
+  - _Drawback:_ It suffers from "Coordinated Omission" — the test tool inadvertently slows down when the server slows down, masking the true severity of the performance degradation.
+- **Open Workload Model (Arrival-Rate Driven):** You control the _arrival rate_ of new requests (e.g., exactly 50 requests per second), regardless of how fast the server responds. If the server slows down, k6 will automatically spawn _more_ VUs in the background (utilizing lightweight Go routines) to maintain that strict 50 RPS target. This accurately simulates public internet traffic (e.g., an e-commerce flash sale where users keep clicking regardless of server lag).
+
+### 3.2. Core Executors in k6
+
+Executors are the engines that drive your scenarios. k6 provides several, but these four are the industry standards:
+
+1.  **`constant-vus` (Closed):** A fixed number of VUs loop through your script for a set duration.
+2.  **`ramping-vus` (Closed):** Gradually increases or decreases the number of VUs over time (perfect for Spike, Step, or Soak testing).
+3.  **`constant-arrival-rate` (Open):** Maintains a strict, constant number of iterations/requests per second.
+4.  **`ramping-arrival-rate` (Open):** Gradually scales the target iterations/requests per second up or down over time.
+
+### 3.3. Advanced Scenario Configuration
+
+Using the `scenarios` object inside `options`, you can run multiple workloads _simultaneously_ or _sequentially_ within the same script. You can map different scenarios to distinct JavaScript functions using the `exec` property. This aligns perfectly with clean, modular coding principles (similar to GoogleStyle in Java or Go), where each function has a Single Responsibility.
+
+### 3.4. Practical Exercises
+
+We will use `https://httpbin.org` for these exercises. Ensure you are executing these from your native Ubuntu shell to guarantee the Goja engine handles the rapid VU allocation without host OS overhead.
+
+#### Exercise 1: The Open Model (Simulating Steady Internet Traffic)
+
+This exercise demonstrates how to force k6 to maintain a strict throughput (Requests Per Second) regardless of server response time.
+
+**File:** `scenario_open_model.js`
+
+```javascript
+import http from "k6/http";
+import { check } from "k6";
+
+export const options = {
+  scenarios: {
+    steady_traffic: {
+      executor: "constant-arrival-rate",
+      // Our goal: 20 requests per second
+      rate: 20,
+      timeUnit: "1s",
+      duration: "30s",
+      // We must pre-allocate VUs that k6 can use to sustain the rate
+      preAllocatedVUs: 20,
+      // If the server slows down, k6 is allowed to spin up to 100 VUs to keep hitting 20 RPS
+      maxVUs: 100,
+    },
+  },
+};
+
+export default function () {
+  const res = http.get("https://httpbin.org/get");
+  check(res, { "status is 200": (r) => r.status === 200 });
+  // Notice: NO sleep() here. In an Open Model, k6 controls the pacing, not the VU logic.
+}
+```
+
+**Run command:** `k6 run scenario_open_model.js`
+
+#### Exercise 2: Multi-Scenario (The Ultimate Real-World Profile)
+
+This is the holy grail of k6 script design. We will simulate steady background traffic (Open Model) while simultaneously injecting a sudden spike of active users (Closed Model) to see how the system handles concurrent, mixed workloads.
+
+**File:** `scenario_mixed_workload.js`
+
+```javascript
+import http from "k6/http";
+import { check, sleep } from "k6";
+
+export const options = {
+  discardResponseBodies: true, // Best practice: saves memory when you don't need to parse bodies
+
+  scenarios: {
+    // Scenario 1: Open Model (Background Traffic running for 1 minute)
+    background_api_calls: {
+      executor: "constant-arrival-rate",
+      rate: 10,
+      timeUnit: "1s",
+      duration: "60s",
+      preAllocatedVUs: 10,
+      maxVUs: 50,
+      exec: "backgroundFlow", // Maps to the specific function below
+    },
+
+    // Scenario 2: Closed Model (Spike Traffic starting after 15 seconds)
+    sudden_user_spike: {
+      executor: "ramping-vus",
+      startVUs: 0,
+      stages: [
+        { duration: "10s", target: 30 }, // Fast ramp-up to 30 VUs
+        { duration: "20s", target: 30 }, // Hold for 20s
+        { duration: "10s", target: 0 }, // Ramp-down
+      ],
+      startTime: "15s", // Delays the execution of this scenario
+      exec: "spikeFlow", // Maps to the specific function below
+    },
+  },
+};
+
+// Isolated logic for Scenario 1
+export function backgroundFlow() {
+  const res = http.get("https://httpbin.org/get?source=background");
+  check(res, { "background GET 200": (r) => r.status === 200 });
+}
+
+// Isolated logic for Scenario 2
+export function spikeFlow() {
+  const payload = JSON.stringify({ action: "urgent_login" });
+  const params = { headers: { "Content-Type": "application/json" } };
+
+  const res = http.post("https://httpbin.org/post", payload, params);
+  check(res, { "spike POST 200": (r) => r.status === 200 });
+
+  sleep(1); // Sleep is necessary in Closed models to simulate user think-time
+}
+```
+
+**Run command:** `k6 run scenario_mixed_workload.js`
