@@ -151,7 +151,7 @@ export function teardown(data) {
 }
 ```
 
-**Run command:** `k6 run lifecycle_test.js`
+**Execution Command:** `k6 run lifecycle_test.js`
 
 #### Exercise 2: Environment Variables for Reusability
 
@@ -181,7 +181,7 @@ export default function () {
 }
 ```
 
-**Run command (injecting variables via CLI):** `k6 run -e TARGET_DOMAIN=test.k6.io -e USE_HTTPS=true env_test.js`
+**Execution Command (injecting variables via CLI):** `k6 run -e TARGET_DOMAIN=test.k6.io -e USE_HTTPS=true env_test.js`
 
 ## 2. Building Robust HTTP/API Tests
 
@@ -279,7 +279,7 @@ export default function () {
 }
 ```
 
-**Run command:** `k6 run api_post_test.js`
+**Execution Command:** `k6 run api_post_test.js`
 
 #### Exercise 2: Defining CI/CD Gates with Custom Metrics and Thresholds
 
@@ -329,7 +329,7 @@ export default function () {
 }
 ```
 
-**Run command:** `k6 run thresholds_metrics_test.js`
+**Execution Command:** `k6 run thresholds_metrics_test.js`
 
 ## 3. Advanced Workload Modeling (Scenarios)
 
@@ -391,7 +391,7 @@ export default function () {
 }
 ```
 
-**Run command:** `k6 run scenario_open_model.js`
+**Execution Command:** `k6 run scenario_open_model.js`
 
 #### Exercise 2: Multi-Scenario (The Ultimate Real-World Profile)
 
@@ -451,7 +451,7 @@ export function spikeFlow() {
 }
 ```
 
-**Run command:** `k6 run scenario_mixed_workload.js`
+**Execution Command:** `k6 run scenario_mixed_workload.js`
 
 ## 4. Test Data Management & Modularity
 
@@ -562,7 +562,7 @@ export default function () {
 }
 ```
 
-**Run command:** `k6 run data_auth_test.js`
+**Execution Command:** `k6 run data_auth_test.js`
 
 #### Exercise 2: Grouping and Tagging for Dashboards
 
@@ -616,4 +616,171 @@ export default function () {
 }
 ```
 
-**Run command:** `k6 run groups_tags_test.js`
+**Execution Command:** `k6 run groups_tags_test.js`
+
+## 5. K6 Browser & Frontend Performance
+
+### 5.1. The Architecture of k6 browser
+
+Unlike the `k6/http` module which only handles network protocols, `k6/browser` interacts with an actual web browser (Chromium).
+
+- **Protocol:** It communicates using the Chrome DevTools Protocol (CDP).
+- **Resource Cost:** A standard API Virtual User (VU) takes about 1-5MB of RAM. A Browser VU spins up a full Chromium instance, consuming 100MB to 200MB+ of RAM. Therefore, you **cannot** run thousands of Browser VUs on a single machine.
+- **Execution Model:** It relies heavily on asynchronous programming (`async/await`) because DOM interactions (clicking, waiting for elements) do not happen instantaneously.
+
+### 5.2. Playwright-Compliant API & Locators
+
+k6 browser adopted the API syntax of Playwright, making it highly intuitive for automation engineers.
+
+- **Contexts & Pages:** You initialize a browser context and open a `page`.
+- **Locators:** The strict, safe way to find elements. Instead of executing immediate actions, locators (`page.locator('.class')`) create a blueprint of how to find the element, which is evaluated exactly when the action (like `.click()`) is performed.
+- **Auto-Waiting:** Before performing an action (like filling a text box), the k6 browser automatically waits for the element to be visible, enabled, and stable.
+
+### 5.3. Web Vitals & Frontend Metrics
+
+When using `k6/browser`, you do not just get network metrics. k6 automatically tracks Core Web Vitals, which reflect true user perception:
+
+- **Largest Contentful Paint (LCP):** When the largest image or text block becomes visible.
+- **First Contentful Paint (FCP):** When the first DOM element is rendered.
+- **Cumulative Layout Shift (CLS):** Measures visual stability (elements jumping around).
+
+### 5.4. Hybrid Testing (The Best Practice)
+
+Since Browser VUs are heavy, the industry standard is **Hybrid Testing**.
+
+- **Strategy:** You generate 95% of your load using the lightweight `k6/http` module (backend load), and run the remaining 5% using `k6/browser` (frontend check).
+- **Benefit:** You stress the backend database and API to their limits while simultaneously measuring how that high backend load degrades the visual rendering time on the frontend.
+
+### 5.5. Practical Exercises
+
+We will use `https://test.k6.io`, which provides a safe playground with a login form (`/my_messages.php`). Ensure your scripts maintain clean, modular functions with strict 4-space indentation.
+
+#### Exercise 1: Simulating Real User UI Interaction
+
+This script launches a headless browser, navigates to a page, fills out a form, and verifies the DOM state, automatically collecting Web Vitals in the background.
+
+**File:** `browser_ui_test.js`
+
+```javascript
+import { browser } from "k6/browser";
+import { check } from "k6";
+
+export const options = {
+  scenarios: {
+    ui_interaction: {
+      executor: "constant-vus",
+      vus: 1, // Keep VUs extremely low for local browser tests
+      duration: "10s",
+      options: {
+        browser: {
+          type: "chromium",
+        },
+      },
+    },
+  },
+};
+
+export default async function () {
+  // 1. Initialize a new page within the browser context
+  const page = browser.newPage();
+
+  try {
+    // 2. Navigate and wait for the network to be mostly idle
+    await page.goto("https://test.k6.io/my_messages.php");
+
+    // 3. Define Locators
+    const loginField = page.locator('input[name="login"]');
+    const passwordField = page.locator('input[name="password"]');
+    const submitButton = page.locator('input[type="submit"]');
+    const errorMessage = page.locator("div.error");
+
+    // 4. Perform UI Actions (Auto-waiting is built-in)
+    await loginField.type("invalid_admin");
+    await passwordField.type("wrong_password");
+    await submitButton.click();
+
+    // 5. Explicitly wait for an element that signifies the page has updated
+    await page.waitForSelector("div.error");
+
+    // 6. Validate the DOM State
+    const errorIsVisible = await errorMessage.isVisible();
+    const errorText = await errorMessage.textContent();
+
+    check(errorIsVisible, {
+      "Error message is displayed": (v) => v === true,
+      "Error text is correct": () => errorText.includes("Unauthorized"),
+    });
+  } finally {
+    // Best Practice: Always close the page in a finally block to prevent memory leaks
+    page.close();
+  }
+}
+```
+
+**Execution Command:** `K6_BROWSER_HEADLESS=true k6 run browser_ui_test.js`
+
+#### Exercise 2: The Hybrid Load Profile
+
+This script demonstrates the ultimate architecture: hitting the backend with high concurrency via HTTP, while running a single browser instance to monitor frontend degradation.
+
+**File:** `hybrid_browser_test.js`
+
+```javascript
+import http from "k6/http";
+import { browser } from "k6/browser";
+import { check, sleep } from "k6";
+
+export const options = {
+  scenarios: {
+    // Scenario 1: Heavy API Load (Open Model)
+    api_backend_load: {
+      executor: "constant-arrival-rate",
+      rate: 20,
+      timeUnit: "1s",
+      duration: "30s",
+      preAllocatedVUs: 20,
+      maxVUs: 50,
+      exec: "apiFlow", // Map to HTTP function
+    },
+
+    // Scenario 2: Single Browser VU for UI monitoring
+    frontend_ui_monitor: {
+      executor: "constant-vus",
+      vus: 1,
+      duration: "30s",
+      options: {
+        browser: { type: "chromium" },
+      },
+      exec: "browserFlow", // Map to Browser function
+    },
+  },
+};
+
+// --- Backend HTTP Logic ---
+export function apiFlow() {
+  const res = http.get("https://test.k6.io/");
+  check(res, { "API 200 OK": (r) => r.status === 200 });
+}
+
+// --- Frontend Browser Logic ---
+export async function browserFlow() {
+  const page = browser.newPage();
+
+  try {
+    await page.goto("https://test.k6.io/");
+
+    const header = page.locator("h2");
+    await page.waitForSelector("h2");
+
+    check(page, {
+      "UI Header rendered": async () => await header.isVisible(),
+    });
+
+    sleep(2); // Think time between UI interactions
+  } finally {
+    page.close();
+  }
+}
+```
+
+**Execution Command:** `K6_BROWSER_HEADLESS=true k6 run hybrid_browser_test.js`
