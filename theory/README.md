@@ -6,6 +6,16 @@
   <sub>June 26, 2026</sub>
 </div>
 
+## Table of Contents
+
+1. [k6 Architecture & Environment Setup](#1-k6-architecture--environment-setup)
+2. [Building Robust HTTP/API Tests](#2-building-robust-httpapi-tests)
+3. [Advanced Workload Modeling (Scenarios)](#3-advanced-workload-modeling-scenarios)
+4. [Test Data Management & Modularity](#4-test-data-management--modularity)
+5. [k6 Browser & Frontend Performance](#5-k6-browser--frontend-performance)
+6. [Observability, Distributed Execution & Tracing](#6-observability-distributed-execution--tracing)
+7. [Extending k6 with Go (xk6)](#7-extending-k6-with-go-xk6)
+
 ## 1. k6 Architecture & Environment Setup
 
 ### 1.1. k6 Architecture: The Engine Under the Hood
@@ -618,7 +628,7 @@ export default function () {
 
 **Execution Command:** `k6 run groups_tags_test.js`
 
-## 5. K6 Browser & Frontend Performance
+## 5. k6 Browser & Frontend Performance
 
 ### 5.1. The Architecture of k6 browser
 
@@ -913,4 +923,149 @@ export default function () {
 
 ```bash
 k6 run --execution-segment "0:1/2" distributed_tracing_test.js
+```
+
+## 7. Extending k6 with Go (xk6)
+
+### 7.1. The Limitation of the JS Runtime and the Need for xk6
+
+The JavaScript runtime embedded in k6 (Goja) is highly optimized for HTTP and WebSockets. However, it lacks native support for standard NodeJS modules (`fs`, `crypto` beyond basics, `net`) and third-party database drivers.
+
+- **The Solution:** Grafana provides `xk6`, a command-line tool that compiles a custom k6 binary containing your custom Go code.
+- **Performance:** Because the heavy lifting (like cryptography or database connections) is executed in compiled Go routines rather than interpreted JavaScript, the performance remains exceptional, allowing for massive concurrency.
+
+### 7.2. The xk6 Ecosystem and Registry
+
+Before writing your own extension, always check the **k6 Extension Registry** (https://k6.io/docs/extensions/). The open-source community has already built dozens of production-ready extensions:
+
+- `xk6-sql`: For load testing PostgreSQL, MySQL, and SQLite.
+- `xk6-kafka`: For producing and consuming Apache Kafka messages.
+- `xk6-redis`: For interacting with Redis caches.
+
+You can compile a binary with multiple extensions simultaneously.
+
+### 7.3. Architecture of a Custom Extension
+
+Building a custom extension involves creating a Go module that acts as a bridge to the JS runtime.
+
+1. **The Go Module:** You define a standard Go `struct` and attach methods to it.
+2. **The Registry:** You import `go.k6.io/k6/js/modules` and call `modules.Register()` to expose your Go struct to the JavaScript environment under a specific import path (e.g., `k6/x/my-module`).
+3. **The JavaScript Bridge:** Goja automatically translates Go data types to JavaScript primitives (e.g., Go `string` to JS `String`, Go `[]byte` to JS `ArrayBuffer`).
+
+### 7.4. Practical Exercise: Building a Custom Go Extension
+
+To demonstrate the full lifecycle without requiring external databases, we will build a custom Go extension that performs a computationally heavy string manipulation (simulating a proprietary internal hashing algorithm), compile it, and call it from a JS script.
+
+Ensure you have the Go compiler installed in your environment (`sudo apt install golang-go`).
+
+#### Step 1: Create the Go Extension
+
+Create a new directory for your project and initialize a Go module.
+
+```bash
+mkdir custom-k6-ext
+cd custom-k6-ext
+go mod init custom-k6-ext
+```
+
+Create the Go source file: `my_crypto.go`
+
+```go
+package mycrypto
+
+import (
+    "crypto/sha256"
+    "encoding/hex"
+    "strings"
+    "go.k6.io/k6/js/modules"
+)
+
+// init is called by the Go runtime to register the module.
+func init() {
+    modules.Register("k6/x/mycrypto", new(MyCrypto))
+}
+
+// MyCrypto is the struct that will be exposed to JavaScript.
+type MyCrypto struct{}
+
+// GenerateCustomHash is the method we want to call from our k6 JS script.
+// Notice the 4-space indentation standard.
+func (m *MyCrypto) GenerateCustomHash(input string, salt string) string {
+    // Simulate a proprietary hashing logic: Convert to uppercase, concat salt, then SHA256
+    processedString := strings.ToUpper(input) + "_" + salt
+
+    hash := sha256.Sum256([]byte(processedString))
+
+    return hex.EncodeToString(hash[:])
+}
+```
+
+#### Step 2: Build the Custom k6 Binary
+
+You need the `xk6` builder tool. Install it, then command it to build a new k6 binary using your local Go module.
+
+```bash
+# Install xk6 builder
+go install go.k6.io/xk6/cmd/xk6@latest
+
+# Build the custom binary (Assuming $GOPATH/bin is in your PATH)
+xk6 build --with custom-k6-ext=.
+```
+
+_Result:_ This generates an executable file named `k6` in your current directory. This is your custom, augmented k6 engine.
+
+#### Step 3: Write the k6 JavaScript Test
+
+Now, write the standard k6 test script that utilizes the new module.
+
+**File:** `xk6_test.js`
+
+```javascript
+import http from "k6/http";
+import { check, sleep } from "k6";
+// Import the custom Go extension using the registered path
+import mycrypto from "k6/x/mycrypto";
+
+export const options = {
+  vus: 2,
+  duration: "5s",
+};
+
+export default function () {
+  const userId = `user_${__VU}_${__ITER}`;
+  const secretSalt = "PROD_SALT_8899";
+
+  // Call the compiled Go function natively
+  const secureHash = mycrypto.GenerateCustomHash(userId, secretSalt);
+
+  console.log(`[VU ${__VU}] Generated Hash for ${userId}: ${secureHash}`);
+
+  // Use the hash in a standard HTTP request
+  const payload = JSON.stringify({
+    user: userId,
+    token: secureHash,
+  });
+
+  const params = { headers: { "Content-Type": "application/json" } };
+  const res = http.post("https://httpbin.test.k6.io/post", payload, params);
+
+  check(res, {
+    "status is 200": (r) => r.status === 200,
+    "hash accepted": (r) => {
+      const body = JSON.parse(r.body);
+      return body.json.token === secureHash;
+    },
+  });
+
+  sleep(1);
+}
+```
+
+#### Step 4: Execution Command
+
+Crucially, you must run the script using your _newly compiled local binary_, not the globally installed k6.
+
+```bash
+# Use ./k6 to ensure you are executing the custom binary in the current folder
+./k6 run xk6_test.js
 ```
