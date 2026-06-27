@@ -784,3 +784,133 @@ export async function browserFlow() {
 ```
 
 **Execution Command:** `K6_BROWSER_HEADLESS=true k6 run hybrid_browser_test.js`
+
+## 6. Observability, Distributed Execution & Tracing
+
+### 6.1. The Built-in Web Dashboard
+
+Historically, visualizing k6 results in real-time required setting up a separate stack (InfluxDB + Grafana). In k6, this is no longer necessary for local development. k6 includes a native, highly responsive Web Dashboard.
+
+- **Mechanism:** When enabled, k6 spawns a local web server (default: port 5665) running a React-based UI that reads metrics directly from the Go engine's memory.
+- **Benefits:** Zero-configuration real-time visualization of VUs, RPS, HTTP response times, and error rates. It also provides a final HTML report upon completion.
+
+### 6.2. Metric Streaming & External Outputs
+
+For CI/CD pipelines or enterprise-grade observability, you must persist test data beyond a single terminal session. The `k6 run --out` flag handles this.
+
+- **File Outputs:** `json`, `csv`. Useful for local debugging or lightweight CI/CD artifact storage.
+- **Real-time Streaming:** k6 can push metrics in real-time to time-series databases.
+  - _Prometheus Remote Write:_ The industry standard for cloud-native environments.
+  - _InfluxDB / Datadog / New Relic:_ Fully supported via built-in extensions.
+
+### 6.3. Distributed Execution & Sharding
+
+A single machine (even a powerful Ubuntu server) can typically generate 30,000 to 50,000 VUs before hitting CPU/Network bottlenecks. To simulate 100,000+ VUs, you must distribute the load.
+
+- **Execution Segments:** k6 allows manual sharding of your script. You can tell Node A to run segment `0:1/2` (the first 50% of the load) and Node B to run segment `1/2:1` (the remaining 50%).
+- **k6-operator (Kubernetes):** For true distributed execution, the k6 Kubernetes operator automatically spins up multiple pods, assigns segments, and aggregates the results seamlessly.
+
+### 6.4. OpenTelemetry (OTel) Tracing Integration
+
+If a k6 load test reports that the login API takes 5 seconds, it does not tell you _why_. Is it the database? The auth service? The cache?
+
+- **Distributed Tracing:** k6 natively supports OpenTelemetry. It can automatically inject `traceparent` headers into outgoing HTTP requests.
+- **Correlation:** When your backend services (which are also instrumented with OTel) receive this header, they link their internal spans to the k6 request. You can then open Jaeger or Grafana Tempo, paste the Trace ID from k6, and see the exact database query that caused the bottleneck.
+
+### 6.5. Practical Exercises
+
+We will use `https://httpbin.test.k6.io` as it safely handles high throughput and properly echoes headers (which is perfect for verifying OTel injection).
+
+#### Exercise 1: The Zero-Config Real-Time Dashboard & Output
+
+This exercise demonstrates how to activate the built-in UI and simultaneously save raw metric data to a JSON file for CI/CD integration.
+
+**File:** `observability_dashboard_test.js`
+
+```javascript
+import http from "k6/http";
+import { check, sleep } from "k6";
+
+export const options = {
+  scenarios: {
+    ramp_traffic: {
+      executor: "ramping-arrival-rate",
+      startRate: 5,
+      timeUnit: "1s",
+      preAllocatedVUs: 10,
+      maxVUs: 50,
+      stages: [
+        { target: 20, duration: "15s" }, // Ramp up
+        { target: 20, duration: "30s" }, // Hold
+        { target: 0, duration: "15s" }, // Ramp down
+      ],
+    },
+  },
+};
+
+export default function () {
+  const res = http.get("https://httpbin.test.k6.io/get");
+  check(res, {
+    "status is 200": (r) => r.status === 200,
+  });
+}
+```
+
+**Execution Command:** Run this in your terminal, then immediately open `http://localhost:5665` in your browser.
+
+```bash
+K6_WEB_DASHBOARD=true k6 run --out json=test_results.json observability_dashboard_test.js
+```
+
+#### Exercise 2: OpenTelemetry Trace Injection & Distributed Sharding
+
+This script manually configures an HTTP client to inject OTel tracing headers and simulates how you would run a "shard" of a distributed test.
+
+**File:** `distributed_tracing_test.js`
+
+```javascript
+import http from "k6/http";
+import { check } from "k6";
+import { randomString } from "k6/crypto";
+
+export const options = {
+  vus: 5,
+  duration: "10s",
+};
+
+// Helper function to generate a dummy W3C traceparent header
+// Format: 00-{trace-id}-{parent-id}-{flags}
+function generateTraceparent() {
+  const traceId = randomString(32, "hex");
+  const spanId = randomString(16, "hex");
+  return `00-${traceId}-${spanId}-01`;
+}
+
+export default function () {
+  const currentTraceId = generateTraceparent();
+
+  // Injecting the trace header. In a real environment with the k6 OTel module,
+  // this can be done automatically, but manual injection ensures compatibility with any backend.
+  const params = {
+    headers: {
+      traceparent: currentTraceId,
+      "Content-Type": "application/json",
+    },
+  };
+
+  // httpbin echoes our headers back, allowing us to verify the injection
+  const res = http.get("https://httpbin.test.k6.io/headers", params);
+
+  check(res, {
+    "status is 200": (r) => r.status === 200,
+    "traceparent injected": (r) =>
+      r.json("headers.Traceparent") === currentTraceId,
+  });
+}
+```
+
+**Execution Command (Simulating Node 1 of a 2-Node Cluster):** This command tells k6 to only execute the first 50% of the workload (Segment 0 to 0.5).
+
+```bash
+k6 run --execution-segment "0:1/2" distributed_tracing_test.js
+```
