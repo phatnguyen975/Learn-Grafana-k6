@@ -60,7 +60,47 @@ This is the most critical concept in k6. A test script goes through four distinc
    - Located in `export function teardown(data)`.
    - **Purpose:** Cleaning up the environment (e.g., deleting the test user created in `setup`).
 
-### 1.4. Practical Exercises
+### 1.4. Enterprise k6 Project Structure
+
+Unlike heavyweight frameworks, k6 projects do not strictly require complex build tools (like Maven or Gradle) to run. A plain repository tracked via git is perfectly sufficient. However, structuring your files logically is critical for maintainability when utilizing Neovim as your primary editor.
+
+Below is the industry-standard directory structure for a scalable k6 performance testing repository:
+
+```text
+k6-performance-project/
+├── src/                      // Core source code directory
+│   ├── tests/                // Contains the actual executable test scripts
+│   │   ├── api_register_test.js
+│   │   └── scenario_mixed_workload.js
+│   ├── modules/              // Reusable business logic (Page Objects / API clients)
+│   │   ├── auth.js           // Functions for handling login and token extraction
+│   │   └── cart.js           // Functions for cart manipulation
+│   └── utils/                // Helper functions (Random data generators, formatting)
+│       └── helpers.js
+├── data/                     // Static test data files (loaded via SharedArray)
+│   ├── users.json
+│   └── products.csv
+├── config/                   // Environment-specific configurations
+│   ├── dev.env               // Variables for Development environment
+│   └── prod.env              // Variables for Production environment
+├── extensions/               // Go modules for custom xk6 binaries (if applicable)
+│   └── custom-hash.go
+├── package.json              // (Optional) Used ONLY if you need npm for type definitions/linting
+└── README.md                 // Project documentation and execution instructions
+```
+
+### 1.5. Mastering the k6 CLI
+
+Running tests efficiently requires mastery of the k6 Command Line Interface within your native Ubuntu shell.
+
+- `k6 run <script.js>`: The primary command to execute a local test script.
+- `k6 run --out json=test_results.json <script.js>`: Executes the script and exports the raw metric data into a JSON file for later analysis.
+- `k6 run --env TARGET_ENV=prod <script.js>`: Injects environment variables directly into the script during runtime.
+- `k6 inspect <script.js>`: Parses the script and outputs the exported `options` (like VUs, duration, thresholds) without actually running the test. Excellent for dry-run validations.
+- `k6 archive <script.js>`: Packages the test script and all its dependencies (including local JSON/CSV data files) into a single `.tar` file. This is crucial for distributing tests across a cluster.
+- `k6 version`: Displays the currently installed version and the embedded Goja runtime details.
+
+### 1.6. Practical Exercises
 
 We will use `https://test.k6.io`, a public domain maintained by Grafana specifically for testing k6 scripts safely.
 
@@ -412,3 +452,168 @@ export function spikeFlow() {
 ```
 
 **Run command:** `k6 run scenario_mixed_workload.js`
+
+## 4. Test Data Management & Modularity
+
+### 4.1. Data Parameterization with `SharedArray`
+
+In real-world load testing, having VUs use hardcoded or identical data (like the same username) leads to unrealistic caching on the server or database locking errors. You need dynamic data.
+
+- **The Problem:** If you simply load a 50MB JSON file in the `Init` stage using standard JavaScript, k6 will copy that 50MB into the memory of _every single Virtual User_. If you run 1,000 VUs, k6 will consume 50GB of RAM and crash your machine (Out of Memory - OOM).
+- **The Solution: `SharedArray`:** k6 provides `k6/data`. When you load a file (JSON or CSV) via a `SharedArray`, k6 stores the data in memory exactly _once_. All VUs read from this single shared memory address, drastically reducing RAM usage.
+
+### 4.2. Grouping Requests (`group`)
+
+When a test script simulates a complete user journey (e.g., "Login" -> "View Dashboard" -> "Checkout"), you will make dozens of HTTP requests.
+
+- **Purpose:** The `group()` function logically organizes multiple requests into a single transaction.
+- **Metrics:** k6 automatically generates a special metric called `group_duration`. This tells you how long the _entire_ checkout process took, rather than just the individual API calls.
+
+### 4.3. Tagging for Observability (`tags`)
+
+Tags are key-value pairs attached to requests, checks, or custom metrics. They are essential when you export test results to Grafana/InfluxDB for visualization.
+
+- **System Tags:** k6 automatically tags metrics with `status`, `method`, `url`, and `group`.
+- **Custom Tags:** You can define custom tags at the script level, request level, or check level. For example, tagging a request with `env: 'production'` or `api_type: 'auth'` allows you to filter and isolate bottlenecks in your dashboards later.
+
+### 4.4. State Management: Authentication & Cookies
+
+- **Bearer Tokens (JWT):** A common pattern is to hit a login endpoint, extract the `token` from the JSON response, and inject it into the `Authorization: Bearer <token>` header of all subsequent requests.
+- **Cookies:** By default, k6 VUs have their own isolated cookie jars. They automatically manage session cookies (like a real browser) across requests within the same iteration. You can also manually interact with cookies using `http.cookieJar()`.
+
+### 4.5. Practical Exercises
+
+To safely practice data loading and authentication without hitting server constraints, we will use a combination of local JSON data and `httpbin.org`.
+
+#### Exercise 1: Loading Data with SharedArray and Extracting Tokens
+
+This exercise demonstrates loading user credentials from a JSON file, simulating a login to get a token, and using that token in the next request.
+
+**Step 1: Create the Test Data File**
+
+Create a file named `users.json` in the same directory as your script:
+
+```json
+[
+  { "username": "admin_01", "password": "secure1" },
+  { "username": "user_02", "password": "secure2" },
+  { "username": "guest_03", "password": "secure3" }
+]
+```
+
+**Step 2: Create the Script: `data_auth_test.js`**
+
+```javascript
+import http from "k6/http";
+import { check, sleep } from "k6";
+import { SharedArray } from "k6/data";
+
+// 1. INIT STAGE: Load data into a SharedArray (Memory Efficient)
+const users = new SharedArray("test users", function () {
+  // open() is a k6 built-in function to read local files
+  const fileContent = open("./users.json");
+  return JSON.parse(fileContent);
+});
+
+export const options = {
+  vus: 3,
+  iterations: 6, // 6 total iterations shared across 3 VUs
+};
+
+export default function () {
+  // 2. Pick a random user from the SharedArray
+  const randomUser = users[Math.floor(Math.random() * users.length)];
+
+  // --- STEP A: SIMULATE LOGIN ---
+  const loginUrl = "https://httpbin.org/post";
+  const loginPayload = JSON.stringify({
+    user: randomUser.username,
+    pass: randomUser.password,
+  });
+  const loginParams = { headers: { "Content-Type": "application/json" } };
+
+  const loginRes = http.post(loginUrl, loginPayload, loginParams);
+
+  // Simulate token extraction (httpbin echoes our payload back in the 'json' field)
+  let fakeAuthToken = "";
+  if (loginRes.status === 200) {
+    const responseBody = JSON.parse(loginRes.body);
+    // Pretend the server generated a token based on the username
+    fakeAuthToken = `TOKEN_FOR_${responseBody.json.user}`;
+  }
+
+  // --- STEP B: USE TOKEN IN SUBSEQUENT REQUEST ---
+  const profileUrl = "https://httpbin.org/bearer"; // Endpoint that expects a Bearer token
+  const profileParams = {
+    headers: {
+      Authorization: `Bearer ${fakeAuthToken}`,
+      Accept: "application/json",
+    },
+  };
+
+  const profileRes = http.get(profileUrl, profileParams);
+
+  check(profileRes, {
+    "Profile fetch successful (200)": (r) => r.status === 200,
+    "Token was authenticated": (r) => r.body.includes('authenticated": true'),
+  });
+
+  sleep(1);
+}
+```
+
+**Run command:** `k6 run data_auth_test.js`
+
+#### Exercise 2: Grouping and Tagging for Dashboards
+
+This script models a multi-step user journey, logically grouped and tagged so that downstream monitoring tools can easily filter the data.
+
+**File:** `groups_tags_test.js`
+
+```javascript
+import http from "k6/http";
+import { check, group, sleep } from "k6";
+
+export const options = {
+  vus: 2,
+  duration: "5s",
+  // Apply a global tag to all metrics generated by this script
+  tags: { test_run_id: `run_${Date.now()}`, environment: "staging" },
+};
+
+export default function () {
+  // Group 1: Browsing the catalog
+  group("User Journey: Browse Catalog", function () {
+    // Tagging at the request level to categorize API types
+    const reqParams = { tags: { api_tier: "frontend_api" } };
+    const res = http.get(
+      "https://httpbin.org/anything?product=shoes",
+      reqParams,
+    );
+
+    check(res, { "Catalog loaded": (r) => r.status === 200 });
+    sleep(1); // Think time between steps
+  });
+
+  // Group 2: Adding item to cart
+  group("User Journey: Add To Cart", function () {
+    const payload = JSON.stringify({ item_id: 12345, qty: 1 });
+    const reqParams = {
+      headers: { "Content-Type": "application/json" },
+      tags: { api_tier: "backend_core" }, // Different tag for backend
+    };
+
+    const res = http.post("https://httpbin.org/post", payload, reqParams);
+
+    // Tagging a specific check
+    check(
+      res,
+      { "Item added": (r) => r.status === 200 },
+      { check_type: "critical_business_logic" },
+    );
+    sleep(1);
+  });
+}
+```
+
+**Run command:** `k6 run groups_tags_test.js`
