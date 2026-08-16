@@ -1,0 +1,55 @@
+{
+  "metadata": {
+    "student_id": "23127449",
+    "group_name": "transactional",
+    "test_type": "spike",
+    "created_at": "2026-08-15T17:40:04+07:00",
+    "updated_at": "2026-08-15T19:05:00+07:00"
+  },
+  "environment": {
+    "base_url": "http://localhost:3000",
+    "os": "Windows 11 + Ubuntu 24.04 (WSL2)",
+    "host_cpu_cores": 8,
+    "host_ram_gb": 16,
+    "container_cpu_limit": "2.0",
+    "container_memory_limit": "1GB",
+    "k6_version": "v2.0.0",
+    "node_version": "v24.16.0"
+  },
+  "endpoint": {
+    "method": "POST",
+    "path": "/api/cart",
+    "requires_auth": true,
+    "auth_strategy": "per-vu-cached-token",
+    "payload_schema": {
+      "id": 1,
+      "name": "Sản phẩm A",
+      "price": 100000,
+      "quantity": 2
+    }
+  },
+  "baseline": {
+    "p50_ms": 3.06,
+    "p95_ms": 6.57,
+    "p99_ms": null,
+    "error_rate": 0,
+    "rps": 0.958,
+    "run_duration_seconds": 120
+  },
+  "slo": {
+    "p95_threshold_ms": 500,
+    "error_rate_threshold": 5,
+    "notes": "p95_threshold = 500ms to account for SQLite write serialization queue wait times during a 100 VU spike."
+  },
+  "workload": {
+    "normal_vus": 10,
+    "peak_vus": 100,
+    "stages": [
+      { "duration": "1m", "target": 2 },
+      { "duration": "30s", "target": 100 },
+      { "duration": "2m", "target": 100 },
+      { "duration": "30s", "target": 2 },
+      { "duration": "3m", "target": 2 }
+    ]
+  }
+}

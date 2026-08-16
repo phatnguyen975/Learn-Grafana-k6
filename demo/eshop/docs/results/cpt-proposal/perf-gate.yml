@@ -1,0 +1,228 @@
+# .github/workflows/perf-gate.yml
+# Continuous Performance Gate — HW05-AI (EShop SUT)
+#
+# Trigger logic:
+#   - push/PR to main or develop → path-based triage → selective suite execution
+#   - Nightly cron (02:00 UTC = 09:00 ICT) → full soak run
+#
+# Regression rule: p95_new > p95_baseline × 1.20 → block merge
+#
+# Evidence foundation: docs/results/*/perf-config.json (measured on student hardware)
+
+name: Continuous Performance Gate
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 2 * * *'    # 02:00 UTC daily = 09:00 ICT — nightly soak
+
+# ── Stage 1: Triage ──────────────────────────────────────────────────────────
+jobs:
+  triage:
+    name: "Stage 1 — Triage & Path Analysis"
+    runs-on: ubuntu-latest
+    outputs:
+      risk_level: ${{ steps.analyse.outputs.risk_level }}
+      suites:     ${{ steps.analyse.outputs.suites }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2      # need HEAD~1 for diff
+
+      - name: Analyse changed paths
+        id: analyse
+        shell: bash
+        run: |
+          # Nightly schedule always runs full soak — no path analysis needed
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            echo "risk_level=nightly" >> "$GITHUB_OUTPUT"
+            echo 'suites=["soak"]'   >> "$GITHUB_OUTPUT"
+            echo "[TRIAGE] Nightly schedule → soak suite"
+            exit 0
+          fi
+
+          CHANGED=$(git diff --name-only HEAD~1 HEAD)
+          echo "Changed files:"
+          echo "$CHANGED"
+
+          # ── Domain knowledge from AGENTS.md SUT Constraints ──────────────
+          # HIGH: auth routes, middleware, or registration logic
+          if echo "$CHANGED" | grep -qE "backend/routes/(auth|register|login|logout)|backend/middleware/"; then
+            echo "risk_level=high"                          >> "$GITHUB_OUTPUT"
+            echo 'suites=["stress","load","spike"]'        >> "$GITHUB_OUTPUT"
+            echo "[TRIAGE] HIGH → stress + load + spike"
+
+          # CRITICAL: DB schema, models, or migrations
+          elif echo "$CHANGED" | grep -qE "backend/db/|backend/models/|migrations/"; then
+            echo "risk_level=critical"                              >> "$GITHUB_OUTPUT"
+            echo 'suites=["stress","load","spike","soak-mini"]'    >> "$GITHUB_OUTPUT"
+            echo "[TRIAGE] CRITICAL → stress + load + spike + soak-mini"
+
+          # MEDIUM-WRITE: cart, checkout, or order mutation routes
+          elif echo "$CHANGED" | grep -qE "backend/routes/(cart|checkout|order)"; then
+            echo "risk_level=medium-write"            >> "$GITHUB_OUTPUT"
+            echo 'suites=["spike","load"]'            >> "$GITHUB_OUTPUT"
+            echo "[TRIAGE] MEDIUM-WRITE → spike + load"
+
+          # MEDIUM-READ: product or read-only order routes
+          elif echo "$CHANGED" | grep -qE "backend/routes/(product|categor|coupon)"; then
+            echo "risk_level=medium-read"   >> "$GITHUB_OUTPUT"
+            echo 'suites=["load"]'          >> "$GITHUB_OUTPUT"
+            echo "[TRIAGE] MEDIUM-READ → load only"
+
+          # INFRA: deps, Docker, or compose config
+          elif echo "$CHANGED" | grep -qE "package(-lock)?\.json|Dockerfile|docker-compose|infra/"; then
+            echo "risk_level=infra"          >> "$GITHUB_OUTPUT"
+            echo 'suites=["soak-mini"]'      >> "$GITHUB_OUTPUT"
+            echo "[TRIAGE] INFRA → soak-mini"
+
+          # SKIP: only docs, tests, or frontend changed
+          else
+            echo "risk_level=skip"   >> "$GITHUB_OUTPUT"
+            echo 'suites=[]'         >> "$GITHUB_OUTPUT"
+            echo "[TRIAGE] SKIP — no backend change detected"
+          fi
+
+# ── Stage 2: SUT Provisioning ────────────────────────────────────────────────
+  sut-setup:
+    name: "Stage 2 — SUT Provisioning"
+    needs: triage
+    if: needs.triage.outputs.risk_level != 'skip'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Start SUT via Docker Compose
+        run: docker compose -f infra/docker-compose.yml up -d --wait
+
+      - name: Health check (retry 10×, 3 s interval)
+        run: |
+          for i in $(seq 1 10); do
+            curl -sf http://localhost:3000/api/products && break
+            echo "Attempt $i failed — retrying in 3s..."
+            sleep 3
+          done
+
+      - name: Seed test data
+        run: node tests/load/seed-data.js
+
+# ── Stage 3: k6 Execution ────────────────────────────────────────────────────
+  run-suite:
+    name: "Stage 3 — k6: ${{ matrix.suite }}"
+    needs: [triage, sut-setup]
+    if: needs.triage.outputs.risk_level != 'skip'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        suite: ${{ fromJSON(needs.triage.outputs.suites) }}
+      fail-fast: false    # collect all results even if one suite fails
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install k6 (stable)
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring \
+            --keyring /usr/share/keyrings/k6-archive-keyring.gpg \
+            --keyserver hkp://keyserver.ubuntu.com:80 \
+            --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] \
+            https://dl.k6.io/deb stable main" \
+            | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update -q && sudo apt-get install -q k6
+
+      - name: Run ${{ matrix.suite }} suite
+        shell: bash
+        run: |
+          # Map suite name to script directory
+          declare -A DIR_MAP
+          DIR_MAP["stress"]="tests/stress"
+          DIR_MAP["load"]="tests/load"
+          DIR_MAP["spike"]="tests/spike"
+          DIR_MAP["soak"]="tests/soak"
+          DIR_MAP["soak-mini"]="tests/soak"
+
+          SUITE="${{ matrix.suite }}"
+          DIR="${DIR_MAP[$SUITE]}"
+          SCRIPT=$(ls "$DIR"/*Test*.js 2>/dev/null | head -1)
+
+          if [ -z "$SCRIPT" ]; then
+            echo "[ERROR] No *Test*.js script found in $DIR"
+            exit 1
+          fi
+
+          echo "Running: k6 run $SCRIPT (SUITE_MODE=ci)"
+          # CI mode uses 50% of normal VU count to account for shared runner variance
+          k6 run "$SCRIPT" --env SUITE_MODE=ci 2>&1 | tee "ci-output-${SUITE}.txt"
+        continue-on-error: true    # collect all results before gating
+
+      - name: Upload raw results
+        uses: actions/upload-artifact@v4
+        with:
+          name: perf-results-${{ matrix.suite }}
+          path: |
+            docs/results/*/run/raw/summary.json
+            ci-output-${{ matrix.suite }}.txt
+
+# ── Stage 4 & 5: Regression Gate ────────────────────────────────────────────
+  regression-gate:
+    name: "Stage 4+5 — Regression Gate"
+    needs: [triage, run-suite]
+    if: needs.triage.outputs.risk_level != 'skip'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all suite artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: perf-results-*
+          merge-multiple: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run regression checker
+        id: check
+        run: |
+          node scripts/ci/check-regression.js \
+            --threshold 0.20 \
+            --output regression-report.md
+
+      - name: Post results to PR comment
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const body = fs.readFileSync('regression-report.md', 'utf8');
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body,
+            });
+
+      - name: Upload regression report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: regression-report
+          path: regression-report.md
+
+      - name: Gate — block merge on regression
+        run: |
+          if grep -q "REGRESSION DETECTED" regression-report.md; then
+            echo "::error::Performance regression detected. Review regression-report.md and the PR comment."
+            exit 1
+          fi
+          echo "All performance thresholds passed. Merge is unblocked."

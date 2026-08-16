@@ -1,0 +1,565 @@
+* commit e4221869c6f1ecab0c2768009d5af1ea3de7613f
+| Author: Phat Nguyen <phatnguyen9725@gmail.com>
+| Date:   Sun Aug 16 18:00:24 2026 +0700
+| 
+|     feat: add main report and README
+| 
+|  README.md              | 38 ++++++++++++++++++++++++-
+|  reports/ai-critique.md | 10 ++++++-
+|  reports/main-report.md | 72 ++++++++++++++++++++++++++++++++++++++++++++++++
+|  3 files changed, 118 insertions(+), 2 deletions(-)
+| 
+* commit aa3d2cfaed992d37f1adc8585aba81d4304cf323
+| Author: Phat Nguyen <phatnguyen9725@gmail.com>
+| Date:   Sun Aug 16 17:28:42 2026 +0700
+| 
+|     feat: add ai audit report
+| 
+|  eshop/docs/audit/ai/23127449-endurance-2026-08.md |    2 +-
+|  reports/ai-audit-report.md                        | 1401 +++++++++++++++++++
+|  reports/ai-critique.md                            |    1 +
+|  reports/main-report.md                            |    7 +
+|  4 files changed, 1410 insertions(+), 1 deletion(-)
+| 
+* commit 0b3c0d9218f54789a70b29c194b8b2dfa09ed5f7
+| Author: Phat Nguyen <phatnguyen9725@gmail.com>
+| Date:   Sun Aug 16 17:16:05 2026 +0700
+| 
+|     feat: add html report
+| 
+|  reports/ai-critique.md | 0
+|  reports/main-report.md | 0
+|  2 files changed, 0 insertions(+), 0 deletions(-)
+| 
+* commit a9bbe0156415dac3b0135228f91292aa435be627
+| Author: Phat Nguyen <phatnguyen9725@gmail.com>
+| Date:   Sun Aug 16 17:11:16 2026 +0700
+| 
+|     feat: add html report
+| 
+|  .../auth-heavy/run/html-report/summary.html       | 862 +++++++++++++++++++
+|  .../transactional/run/html-report/summary.html    | 908 ++++++++++++++++++++
+|  eshop/tests/config/env.js                         |   2 -
+|  eshop/tests/config/stages.js                      |  40 -
+|  eshop/tests/config/thresholds.js                  |  62 --
+|  eshop/tests/lib/auth.js                           |  19 -
+|  eshop/tests/load/23127449_LoadTest_20260814.js    |  36 +-
+|  eshop/tests/soak/23127449_SoakTest_20260815.js    |   6 +-
+|  eshop/tests/spike/23127449_SpikeTest_20260815.js  |  38 +-
+|  .../tests/stress/23127449_StressTest_20260815.js  |  39 +-
+|  10 files changed, 1870 insertions(+), 142 deletions(-)
+| 
+* commit 7babde2791020ce9d03c5fff352a829cd5f830de
+| Author: Phat Nguyen <phatnguyen9725@gmail.com>
+| Date:   Sun Aug 16 16:09:07 2026 +0700
+| 
+|     feat: done task 3
+| 
+|  .../docs/results/cpt-proposal/check-regression.js | 130 +++++
+|  .../cpt-proposal/continuous-perf-proposal.md      | 551 ++++++++++++++++++++
+|  eshop/docs/results/cpt-proposal/perf-gate.yml     | 228 ++++++++
+|  3 files changed, 909 insertions(+)
+| 
+* commit 9cd155201c2ffc9c1bf672baef45758e4d9a3335
+| Author: Phat Nguyen <phatnguyen9725@gmail.com>
+| Date:   Sun Aug 16 04:18:06 2026 +0700
+| 
+|     feat: add soak test and report
+| 
+|  eshop/docs/audit/ai/23127449-endurance-2026-08.md |  133 +
+|  eshop/docs/results/endurance/endurance-report.md  |  118 +
+|  eshop/docs/results/endurance/raw/stdout.txt       | 2750 +++++++++++++++++++
+|  eshop/docs/results/endurance/raw/summary.json     |  319 +++
+|  eshop/docs/results/endurance/test-plan.md         |  225 ++
+|  eshop/tests/config/stages.js                      |    7 +
+|  eshop/tests/config/thresholds.js                  |   11 +
+|  eshop/tests/soak/23127449_SoakTest_20260815.js    |  192 ++
+|  eshop/tests/soak/generate-data.js                 |   89 +
+|  eshop/tests/soak/package.json                     |    3 +
+|  eshop/tests/soak/sanity-soak.js                   |  153 ++
+|  eshop/tests/soak/seed-data.js                     |  112 +
+|  eshop/tests/soak/seed-state.json                  |  102 +
+|  eshop/tests/soak/soak.csv                         |   21 +
+|  screenshots/endurance/execution-perf.png          |  Bin 0 -> 1250641 bytes
+|  screenshots/endurance/grafana-perf-01.png         |  Bin 0 -> 541048 bytes
+|  screenshots/endurance/grafana-perf-02.png         |  Bin 0 -> 460469 bytes
+|  17 files changed, 4235 insertions(+)
+| 
+* commit 7c4539d84f168ac4eae9a888d65547e1d43d408b
+| Author: Phat Nguyen <phatnguyen9725@gmail.com>
+| Date:   Sat Aug 15 23:30:30 2026 +0700
+| 
+|     feat(transactional): done
+| 
+|  .../audit/ai/23127449-transactional-2026-08.md    |  122 +-
+|  .../docs/results/transactional/report/analysis.md |  130 ++
+|  .../transactional/report/bug-candidates.md        |   28 +
+|  .../transactional/report/misinterpretations.md    |   52 +
+|  .../docs/results/transactional/run/raw/stdout.txt | 1279 +++++++++++++++++++
+|  .../results/transactional/run/raw/summary.json    |  257 ++++
+|  eshop/docs/results/transactional/run/run-log.md   |   82 ++
+|  eshop/tests/spike/seed-state.json                 |  462 +++----
+|  eshop/tests/spike/transactional.csv               |  230 ++--
+|  .../{hardware-spec.png => hardware-info.png}      |  Bin
+|  screenshots/transactional/execution-perf.png      |  Bin 0 -> 1218505 bytes
+|  screenshots/transactional/grafana-perf-01.png     |  Bin 0 -> 499956 bytes
+|  screenshots/transactional/grafana-perf-02.png     |  Bin 0 -> 422300 bytes
+|  13 files changed, 2277 insertions(+), 365 deletions(-)
+| 
+* commit 46140e5dd56a13a9ab97b786f2d411b2ccf441d1
+| Author: Phat Nguyen <phatnguyen9725@gmail.com>
+| Date:   Sat Aug 15 21:23:53 2026 +0700
+| 
+|     feat(transactional): add sanity and full test scripts
+| 
+|  .../audit/ai/23127449-transactional-2026-08.md    | 115 ++++++++---
+|  .../transactional/build/sanity-result.json        | 215 ++++++++++++++++++++
+|  .../results/transactional/build/sanity-result.md  |  27 +++
+|  eshop/docs/results/transactional/perf-config.json |   4 +-
+|  .../docs/results/transactional/plan/test-plan.md  |  12 +-
+|  eshop/tests/config/stages.js                      |  10 +-
+|  eshop/tests/config/thresholds.js                  |  19 +-
+|  eshop/tests/spike/23127449_SpikeTest_20260815.js  | 120 +++++++++++
+|  eshop/tests/spike/sanity-transactional.js         |  90 ++++++++
+|  9 files changed, 573 insertions(+), 39 deletions(-)
+| 
+* commit 00c04520ff4a31ed12f2a1a238b84d0d91722739
+| Author: Phat Nguyen <phatnguyen9725@gmail.com>
+| Date:   Sat Aug 15 20:59:51 2026 +0700
+| 
+|     feat(transactional): add script for generate data
+| 
+|  .../audit/ai/23127449-transactional-2026-08.md    |  78 +-
+|  eshop/docs/results/read-heavy/perf-config.json    |   2 +-
+|  eshop/docs/results/transactional/perf-config.json |  12 +-
+|  .../results/transactional/plan/auth-strategy.md   |  72 ++
+|  .../docs/results/transactional/plan/csv-schema.md |  68 ++
+|  .../docs/results/transactional/plan/test-plan.md  | 126 +++
+|  eshop/tests/spike/generate-data.js                |  83 ++
+|  eshop/tests/spike/package.json                    |   3 +
+|  eshop/tests/spike/seed-data.js                    | 122 +++
+|  eshop/tests/spike/seed-state.json                 | 922 ++++++++++++++++++++
+|  eshop/tests/spike/transactional.csv               | 116 +++
+|  11 files changed, 1590 insertions(+), 14 deletions(-)
+| 
+* commit f387627620048cdaf77ef671d72951a6405a50e4
+| Author: Phat Nguyen <phatnguyen9725@gmail.com>
+| Date:   Sat Aug 15 18:44:44 2026 +0700
+| 
+|     feat(transactional): done perf spec
+| 
+|  .../audit/ai/23127449-transactional-2026-08.md    |  50 +++-
+|  eshop/docs/results/transactional/perf-config.json |  18 +-
+|  .../results/transactional/spec/baseline-result.md |  78 +++++++
+|  .../transactional/spec/baseline-summary.json      | 240 ++++++++++++++++++++
+|  eshop/tests/spike/baseline.js                     |  73 ++++++
+|  5 files changed, 440 insertions(+), 19 deletions(-)
+| 
+* commit d9bdc3eb2df509bb93b7860707753cf1191d918a
+| Author: Phat Nguyen <phatnguyen9725@gmail.com>
+| Date:   Sat Aug 15 18:23:59 2026 +0700
+| 
+|     feat(transactional): add perf config
+| 
+|  .../docs/audit/ai/23127449-auth-heavy-2026-08.md  |   2 +-
+|  .../audit/ai/23127449-transactional-2026-08.md    | 128 ++++++++++++++++++++
+|  eshop/docs/results/read-heavy/perf-config.json    |   6 +-
+|  eshop/docs/results/transactional/perf-config.json |  49 ++++++++
+|  .../results/transactional/spec/scenario-design.md |  79 ++++++++++++
+|  5 files changed, 262 insertions(+), 2 deletions(-)
+| 
+* commit 56cd0c7488790beb005ad5251ab3defdc9a358d8
+| Author: Phat Nguyen <phatnguyen9725@gmail.com>
+| Date:   Sat Aug 15 16:07:01 2026 +0700
+| 
+|     feat(auth-heavy): done
+| 
+|  .../docs/audit/ai/23127449-auth-heavy-2026-08.md  | 175 +++++++++++++--
+|  eshop/docs/results/auth-heavy/perf-config.json    |  10 +-
+|  eshop/docs/results/auth-heavy/plan/test-plan.md   |  20 +-
+|  eshop/docs/results/auth-heavy/report/analysis.md  | 124 +++++++++++
+|  .../results/auth-heavy/report/bug-candidates.md   |  29 +++
+|  .../auth-heavy/report/misinterpretations.md       |  52 +++++
+|  .../docs/results/auth-heavy/run/raw/summary.json  | 232 ++++++++++++++++++++
+|  eshop/docs/results/auth-heavy/run/run-log.md      |  25 +++
+|  eshop/tests/config/stages.js                      |   8 +-
+|  .../tests/stress/23127449_StressTest_20260815.js  |  40 +---
+|  screenshots/auth-heavy/execution-perf.png         | Bin 0 -> 1395266 bytes
+|  screenshots/auth-heavy/grafana-perf-01.png        | Bin 0 -> 514306 bytes
+|  screenshots/auth-heavy/grafana-perf-02.png        | Bin 0 -> 416823 bytes
+|  13 files changed, 645 insertions(+), 70 deletions(-)
+| 
+* commit bfcbb2b54f803a92e5613086a376466a14c45b82
+| Author: Phat Nguyen <phatnguyen9725@gmail.com>
+| Date:   Sat Aug 15 05:25:59 2026 +0700
+| 
+|     feat(auth-heavy): add sanity and full test scripts
+| 
+|  .../docs/audit/ai/23127449-auth-heavy-2026-08.md  |     79 +-
+|  .../results/auth-heavy/build/sanity-result.json   |    201 +
+|  .../results/auth-heavy/build/sanity-result.md     |     55 +
+|  eshop/tests/config/stages.js                      |      9 +-
+|  eshop/tests/config/thresholds.js                  |     19 +-
+|  eshop/tests/load/generate-data.js                 |     50 +-
+|  .../tests/stress/23127449_StressTest_20260815.js  |     99 +
+|  eshop/tests/stress/auth-heavy.csv                 | 108000 ++++++++---------
+|  eshop/tests/stress/generate-data.js               |     10 +-
+|  eshop/tests/stress/package.json                   |      3 +
+|  eshop/tests/stress/sanity-auth-heavy.js           |     60 +
+|  11 files changed, 54547 insertions(+), 54038 deletions(-)
+| 
+* commit a3f6a51e7c46d13ded1f78c70cd899cd0ec146f1
+| Author: Phat Nguyen <phatnguyen9725@gmail.com>
+| Date:   Sat Aug 15 04:55:03 2026 +0700
+| 
+|     feat(auth-heavy): add data csv and generate script
+| 
+|  eshop/.agents/skills/perf-plan/SKILL.md           |     4 +-
+|  .../docs/audit/ai/23127449-auth-heavy-2026-08.md  |   148 +-
+|  eshop/docs/results/auth-heavy/perf-config.json    |    11 +-
+|  .../docs/results/auth-heavy/plan/auth-strategy.md |    74 +
+|  eshop/docs/results/auth-heavy/plan/csv-schema.md  |    93 +
+|  eshop/docs/results/auth-heavy/plan/test-plan.md   |   134 +
+|  eshop/tests/stress/auth-heavy.csv                 | 54001 ++++++++++++++++++
+|  eshop/tests/stress/generate-data.js               |    75 +
+|  8 files changed, 54525 insertions(+), 15 deletions(-)
+| 
+* commit 06b2ddf420abe54d62287c0d5466c02f307d8922
+| Author: Phat Nguyen <phatnguyen9725@gmail.com>
+| Date:   Sat Aug 15 04:05:10 2026 +0700
+| 
+|     feat(auth-heavy): add baseline and specs
+| 
+|  .../docs/audit/ai/23127449-auth-heavy-2026-08.md  | 131 ++++++++++++
+|  eshop/docs/results/auth-heavy/perf-config.json    |  48 +++++
+|  .../results/auth-heavy/spec/baseline-result.md    |  34 ++++
+|  .../results/auth-heavy/spec/baseline-summary.json | 212 ++++++++++++++++++++
+|  .../results/auth-heavy/spec/scenario-design.md    |  69 +++++++
+|  eshop/tests/stress/baseline.js                    |  59 ++++++
+|  6 files changed, 553 insertions(+)
+| 
+* commit 032993ed3ba51f40ad5c061789ef236d9c1ceee2
+| Author: Phat Nguyen <phatnguyen9725@gmail.com>
+| Date:   Sat Aug 15 03:18:10 2026 +0700
+| 
+|     feat(read-heavy): add screenshots
+| 
+|  screenshots/read-heavy/execution-perf.png      | Bin 0 -> 1239163 bytes
+|  screenshots/read-heavy/grafana-perf-01.png     | Bin 0 -> 539461 bytes
+|  screenshots/read-heavy/grafana-perf-02.png     | Bin 0 -> 454064 bytes
+|  screenshots/read-heavy/grafana-timeline-01.png | Bin 480536 -> 0 bytes
+|  screenshots/read-heavy/grafana-timeline-02.png | Bin 449180 -> 0 bytes
+|  screenshots/read-heavy/run-terminal.png        | Bin 1184745 -> 0 bytes
+|  6 files changed, 0 insertions(+), 0 deletions(-)
+| 
+* commit 26323a830d66e6f7e1268282dc7de5e30c3d0cbf
+| Author: Phat Nguyen <phatnguyen9725@gmail.com>
+| Date:   Sat Aug 15 03:17:48 2026 +0700
+| 
+|     feat(read-heavy): done
+| 
+|  eshop/.agents/skills/perf-plan/SKILL.md           |   2 +-
+|  .../docs/results/read-heavy/build/review-notes.md |   4 -
+|  .../docs/results/read-heavy/plan/auth-strategy.md |  50 ++--
+|  eshop/docs/results/read-heavy/plan/csv-schema.md  |  41 +++
+|  .../results/read-heavy/plan/data/csv-schema.md    |  80 ------
+|  eshop/docs/results/read-heavy/plan/test-plan.md   |  77 +++---
+|  eshop/docs/results/read-heavy/report/analysis.md  | 127 ++++-----
+|  .../results/read-heavy/report/bug-candidates.md   |   2 +-
+|  .../read-heavy/report/misinterpretations.md       |  23 +-
+|  .../read-heavy/run/html-report/summary.html       |  96 +++----
+|  .../docs/results/read-heavy/run/raw/summary.json  | 270 ++++++++++----------
+|  eshop/docs/results/read-heavy/run/run-log.md      |  30 +--
+|  .../results/read-heavy/spec/baseline-result.md    |  71 +++--
+|  .../results/read-heavy/spec/baseline-summary.json | 268 +++++++++----------
+|  .../results/read-heavy/spec/scenario-design.md    |   2 +-
+|  eshop/tests/config/stages.js                      |   4 +-
+|  eshop/tests/config/thresholds.js                  |   4 +-
+|  eshop/tests/load/generate-data.js                 |   4 +-
+|  eshop/tests/load/read-heavy.csv                   |  70 +++--
+|  eshop/tests/load/seed-data.js                     |   2 +-
+|  eshop/tests/load/seed-state.json                  | 198 ++++++++++++--
+|  21 files changed, 743 insertions(+), 682 deletions(-)
+| 
+* commit 4a034d19f725024adcf0d9c47ee30eba603dd926
+| Author: Phat Nguyen <phatnguyen9725@gmail.com>
+| Date:   Sat Aug 15 00:50:14 2026 +0700
+| 
+|     feat(read-heavy): add reports
+| 
+|  .../docs/audit/ai/23127449-read-heavy-2026-08.md  |  63 ++++++--
+|  eshop/docs/results/read-heavy/report/analysis.md  | 151 ++++++++++++++++++++
+|  .../results/read-heavy/report/bug-candidates.md   |  13 ++
+|  .../read-heavy/report/misinterpretations.md       |  26 ++++
+|  .../read-heavy}/grafana-timeline-01.png           | Bin
+|  .../read-heavy}/grafana-timeline-02.png           | Bin
+|  .../read-heavy}/run-terminal.png                  | Bin
+|  7 files changed, 241 insertions(+), 12 deletions(-)
+| 
+* commit ead58a517929d00af25f0849f42ee4cf183c0ec1
+| Author: Phat Nguyen <phatnguyen9725@gmail.com>
+| Date:   Sat Aug 15 00:17:43 2026 +0700
+| 
+|     feat(read-heavy): run script and add summary logs
+| 
+|  .../read-heavy/run/html-report/summary.html       | 907 ++++++++++++++++++++
+|  .../docs/results/read-heavy/run/raw/summary.json  | 257 ++++++
+|  eshop/docs/results/read-heavy/run/run-log.md      |  90 ++
+|  .../run/screenshots/grafana-timeline-01.png       | Bin 0 -> 480536 bytes
+|  .../run/screenshots/grafana-timeline-02.png       | Bin 0 -> 449180 bytes
+|  .../read-heavy/run/screenshots/run-terminal.png   | Bin 0 -> 1184745 bytes
+|  eshop/infra/docker-compose.yml                    |   2 +-
+|  .../infra/grafana/dashboards/perf-dashboard.json  |   4 +-
+|  eshop/tests/load/read-heavy.csv                   |  40 +-
+|  eshop/tests/load/seed-state.json                  |  40 +-
+|  10 files changed, 1297 insertions(+), 43 deletions(-)
+| 
+* commit da9afab2269f7be50ac62ca4ba49b6e5ccb49269
+| Author: Phat Nguyen <phatnguyen9725@gmail.com>
+| Date:   Fri Aug 14 23:12:30 2026 +0700
+| 
+|     refactor(read-heavy): update structure
+| 
+|  .../build/23127449_LoadTest_20260814.js           |  82 ----------------
+|  .../results/read-heavy/plan/data/read-heavy.csv   |  21 ----
+|  .../results/read-heavy/plan/data/seed-state.json  | 102 --------------------
+|  .../read-heavy/spec}/baseline-summary.json        |   0
+|  eshop/tests/data/read-heavy.csv                   |  21 ----
+|  eshop/tests/load/23127449_LoadTest_20260814.js    |   2 +-
+|  eshop/tests/load/baseline.js                      |   2 +-
+|  .../plan/data => tests/load}/generate-data.js     |   0
+|  .../plan/data => tests/load}/package.json         |   0
+|  eshop/tests/load/read-heavy.csv                   |  21 ++++
+|  .../build => tests/load}/sanity-read-heavy.js     |   4 +-
+|  .../plan/data => tests/load}/seed-data.js         |   0
+|  eshop/tests/load/seed-state.json                  | 102 ++++++++++++++++++++
+|  13 files changed, 127 insertions(+), 230 deletions(-)
+| 
+* commit 4a1402cf247d5cb6483b6e60d75a17c86aa7086a
+| Author: Phat Nguyen <phatnguyen9725@gmail.com>
+| Date:   Fri Aug 14 20:15:00 2026 +0700
+| 
+|     feat(read-heavy): add test script
+| 
+|  .../docs/audit/ai/23127449-read-heavy-2026-08.md  |  93 ++++++--
+|  .../build/23127449_LoadTest_20260814.js           |  82 +++++++
+|  .../docs/results/read-heavy/build/review-notes.md |   4 +
+|  .../results/read-heavy/build/sanity-read-heavy.js |  92 ++++++++
+|  .../results/read-heavy/build/sanity-result.json   | 229 ++++++++++++++++++++
+|  .../results/read-heavy/build/sanity-result.md     |  72 ++++++
+|  .../results/read-heavy/plan/data/read-heavy.csv   |  40 ++--
+|  .../results/read-heavy/plan/data/seed-state.json  |  80 +++----
+|  eshop/tests/config/env.js                         |   5 +-
+|  eshop/tests/config/stages.js                      |  18 ++
+|  eshop/tests/config/thresholds.js                  |  17 ++
+|  eshop/tests/data/read-heavy.csv                   |  40 ++--
+|  eshop/tests/lib/auth.js                           |  19 ++
+|  eshop/tests/load/23127449_LoadTest_20260814.js    |  81 +++++++
+|  14 files changed, 775 insertions(+), 97 deletions(-)
+| 
+* commit f933adc01fc1654c12ae409a5726c89622741c7a
+| Author: Phat Nguyen <phatnguyen9725@gmail.com>
+| Date:   Fri Aug 14 14:50:25 2026 +0700
+| 
+|     feat(read-heavy): add test data
+| 
+|  .../docs/audit/ai/23127449-read-heavy-2026-08.md  |  59 ++++++++---
+|  .../results/read-heavy/plan/data/csv-schema.md    |  80 ++++++++++++++
+|  .../results/read-heavy/plan/data/generate-data.js |  81 ++++++++++++++
+|  .../results/read-heavy/plan/data/package.json     |   3 +
+|  .../results/read-heavy/plan/data/read-heavy.csv   |  21 ++++
+|  .../results/read-heavy/plan/data/seed-data.js     | 112 ++++++++++++++++++++
+|  .../results/read-heavy/plan/data/seed-state.json  | 102 ++++++++++++++++++
+|  eshop/tests/data/read-heavy.csv                   |  21 ++++
+|  8 files changed, 465 insertions(+), 14 deletions(-)
+| 
+* commit 612dcb578b4e6cecf2ba0a9bd81d44ee0e8c1f10
+| Author: Phat Nguyen <phatnguyen9725@gmail.com>
+| Date:   Fri Aug 14 04:55:10 2026 +0700
+| 
+|     feat(read-heavy): add test plan and auth strategy
+| 
+|  .../docs/audit/ai/23127449-read-heavy-2026-08.md  |  83 +++++++++++---
+|  .../docs/results/read-heavy/plan/auth-strategy.md |  72 ++++++++++++
+|  eshop/docs/results/read-heavy/plan/test-plan.md   | 121 ++++++++++++++++++++
+|  .../results/read-heavy/spec/scenario-design.md    |  10 +-
+|  4 files changed, 268 insertions(+), 18 deletions(-)
+| 
+* commit 766f3fa350f0a93fa4919a0f91d7854244490c7b
+| Author: Phat Nguyen <phatnguyen9725@gmail.com>
+| Date:   Fri Aug 14 04:19:09 2026 +0700
+| 
+|     feat(read-heavy): done perf-spec phase
+| 
+|  .../docs/audit/ai/23127449-read-heavy-2026-08.md  | 180 +++++-
+|  eshop/docs/results/read-heavy/perf-config.json    |  18 +-
+|  .../results/read-heavy/spec/baseline-result.md    |  82 +++
+|  eshop/skill-execution-guide.md                    | 575 ++++++++++++++++++++
+|  eshop/tests/config/env.js                         |   5 +
+|  eshop/tests/load/baseline-summary.json            | 216 ++++++++
+|  eshop/tests/load/baseline.js                      | 109 ++++
+|  7 files changed, 1159 insertions(+), 26 deletions(-)
+| 
+* commit 608a8d22f9f710b1b5db99f629df59a42c463ec5
+| Author: Phat Nguyen <phatnguyen9725@gmail.com>
+| Date:   Fri Aug 14 01:51:09 2026 +0700
+| 
+|     feat(read-heavy): add scenario design and perf-config
+| 
+|  .../docs/audit/ai/23127449-read-heavy-2026-08.md  | 105 ++++++++++++++++++
+|  eshop/docs/results/read-heavy/perf-config.json    |  44 ++++++++
+|  .../results/read-heavy/spec/scenario-design.md    | 113 ++++++++++++++++++++
+|  3 files changed, 262 insertions(+)
+| 
+* commit 377326fd4820f27e4d90574115a331eeae61cd47
+| Author: Phat Nguyen <phatnguyen9725@gmail.com>
+| Date:   Thu Aug 13 17:06:38 2026 +0700
+| 
+|     feat: add sub-agents and memory
+| 
+|  eshop/.agents/agents/k6-runner/agent.md     | 224 ++++++++++++++++
+|  eshop/.agents/agents/node-runner/agent.md   | 316 ++++++++++++++++++++++
+|  eshop/.agents/agents/script-writer/agent.md | 360 ++++++++++++++++++++++++++
+|  eshop/AGENTS.md                             | 320 +++++++++++++++++++++++
+|  4 files changed, 1220 insertions(+)
+| 
+* commit 668486d2b93bcd843e279816490bb03f7ae22a68
+| Author: Phat Nguyen <phatnguyen9725@gmail.com>
+| Date:   Thu Aug 13 16:50:54 2026 +0700
+| 
+|     feat(skill): add perf-report
+| 
+|  eshop/.agents/skills/perf-report/SKILL.md         | 301 ++++++++++++++++++++
+|  .../perf-report/assets/analysis.template.md       | 130 +++++++++
+|  .../perf-report/assets/bug-candidates.template.md |  62 ++++
+|  .../assets/misinterpretations.template.md         |  80 ++++++
+|  .../skills/perf-report/references/bug-criteria.md | 104 +++++++
+|  .../perf-report/references/metric-parsing.md      | 164 +++++++++++
+|  .../references/phase-commentary-guide.md          | 110 +++++++
+|  .../perf-report/references/verdict-criteria.md    |  81 ++++++
+|  8 files changed, 1032 insertions(+)
+| 
+* commit cf3cb66e1e8dbc6b0cbcb0ea38c102d1a4633435
+| Author: Phat Nguyen <phatnguyen9725@gmail.com>
+| Date:   Thu Aug 13 16:28:07 2026 +0700
+| 
+|     feat(skill): add perf-run
+| 
+|  eshop/.agents/skills/perf-run/SKILL.md            | 237 ++++++++++++++++++++
+|  .../.agents/skills/perf-run/assets/parse-soak.js  | 229 +++++++++++++++++++
+|  .../skills/perf-run/assets/run-log.template.md    | 135 +++++++++++
+|  .../assets/soak-endurance-report.template.md      |  92 ++++++++
+|  .../perf-run/references/observation-guide.md      | 132 +++++++++++
+|  .../perf-run/references/pre-run-checklist.md      | 149 ++++++++++++
+|  .../skills/perf-run/references/run-commands.md    | 130 +++++++++++
+|  .../skills/perf-run/references/soak-analysis.md   | 144 ++++++++++++
+|  8 files changed, 1248 insertions(+)
+| 
+* commit b48570fa3c06da7c840a1fc9125a7b249564da13
+| Author: Phat Nguyen <phatnguyen9725@gmail.com>
+| Date:   Thu Aug 13 14:38:47 2026 +0700
+| 
+|     feat(skill): add perf-build
+| 
+|  eshop/.agents/skills/perf-build/SKILL.md          | 298 ++++++++++++++++++++
+|  .../skills/perf-build/assets/env.template.js      |  35 +++
+|  .../perf-build/assets/review-notes.template.md    |  63 +++++
+|  .../perf-build/assets/sanity-result.template.md   |  73 +++++
+|  .../skills/perf-build/assets/stages.template.js   |  42 +++
+|  .../perf-build/assets/thresholds.template.js      |  57 ++++
+|  .../perf-build/references/k6-anti-patterns.md     | 178 ++++++++++++
+|  .../perf-build/references/k6-best-practices.md    | 290 +++++++++++++++++++
+|  .../perf-build/references/output-formats.md       | 165 +++++++++++
+|  9 files changed, 1201 insertions(+)
+| 
+* commit 5ec64ea72bd18aa2d18708af7bba0cbc1e51d2a9
+| Author: Phat Nguyen <phatnguyen9725@gmail.com>
+| Date:   Thu Aug 13 05:02:31 2026 +0700
+| 
+|     feat(skill): add perf-plan
+| 
+|  eshop/.agents/skills/perf-plan/SKILL.md           | 297 ++++++++++++++++++++
+|  .../perf-plan/assets/auth-strategy.template.md    |  86 ++++++
+|  .../perf-plan/assets/csv-schema.template.md       |  89 ++++++
+|  .../skills/perf-plan/assets/test-plan.template.md | 133 +++++++++
+|  .../skills/perf-plan/references/auth-strategy.md  | 153 ++++++++++
+|  .../perf-plan/references/row-count-formula.md     | 105 +++++++
+|  .../perf-plan/references/workload-patterns.md     | 221 +++++++++++++++
+|  7 files changed, 1084 insertions(+)
+| 
+* commit eef7dc180fc5471c8a951bafea0e8b66c960aa94
+| Author: Phat Nguyen <phatnguyen9725@gmail.com>
+| Date:   Wed Aug 12 22:27:11 2026 +0700
+| 
+|     feat(skill): add ai-audit-log
+| 
+|  eshop/.agents/skills/ai-audit-log/LICENSE         |  21 ++
+|  eshop/.agents/skills/ai-audit-log/README.md       |  81 ++++++
+|  eshop/.agents/skills/ai-audit-log/SKILL.md        | 136 +++++++++
+|  .../ai-audit-log/examples/example-session.md      | 290 ++++++++++++++++++++
+|  .../examples/sample-tan-phat-2026-07.log.md       | 184 +++++++++++++
+|  .../skills/ai-audit-log/resources/log-format.md   | 126 +++++++++
+|  .../ai-audit-log/resources/quality-checklist.md   |  36 +++
+|  .../ai-audit-log/resources/status-definitions.md  |  40 +++
+|  .../skills/ai-audit-log/resources/tag-taxonomy.md |  61 ++++
+|  9 files changed, 975 insertions(+)
+| 
+* commit c6f3d56a4a83c2950e871280ad7f1dbfabcc5920
+| Author: Phat Nguyen <phatnguyen9725@gmail.com>
+| Date:   Wed Aug 12 22:21:21 2026 +0700
+| 
+|     feat(skill): add perf-spec
+| 
+|  eshop/.agents/skills/perf-spec/SKILL.md           | 244 ++++++++++++++++++++
+|  .../perf-spec/assets/baseline-result.template.md  |  64 +++++
+|  .../perf-spec/assets/perf-config.template.json    |  44 ++++
+|  .../perf-spec/assets/scenario-design.template.md  |  91 ++++++++
+|  .../skills/perf-spec/references/auth-patterns.md  | 181 +++++++++++++++
+|  .../skills/perf-spec/references/slo-benchmarks.md |  87 +++++++
+|  .../skills/perf-spec/references/slo-derivation.md | 125 ++++++++++
+|  7 files changed, 836 insertions(+)
+| 
+* commit 2790ddbdd1132bb1cfecf33f71e7a0e51ab50b7b
+| Author: Phat Nguyen <phatnguyen9725@gmail.com>
+| Date:   Mon Aug 10 00:08:20 2026 +0700
+| 
+|     infra: docker-compose monitoring stack
+| 
+|  eshop/backend/.dockerignore                       |   5 +
+|  eshop/docs/grafana-dashboard-guide.md             | 261 ++++++
+|  eshop/infra/docker-compose.yml                    |  74 ++
+|  .../infra/grafana/dashboards/perf-dashboard.json  | 970 ++++++++++++++++++++
+|  .../grafana/provisioning/dashboards/dashboard.yml |  12 +
+|  .../provisioning/datasources/prometheus.yml       |  14 +
+|  eshop/infra/prometheus/prometheus.yml             |  10 +
+|  7 files changed, 1346 insertions(+)
+| 
+* commit 305b7a1effa0cfe4beaa98be743865f100cd0840
+| Author: Phat Nguyen <phatnguyen9725@gmail.com>
+| Date:   Sun Aug 9 01:54:36 2026 +0700
+| 
+|     feat: add prom-client metrics endpoint to backend
+| 
+|  eshop/.gitignore                |    1 +
+|  eshop/backend/Dockerfile        |    8 +
+|  eshop/backend/package-lock.json | 1710 +++++++++++++++++++++++++++++++++++++
+|  eshop/backend/package.json      |    1 +
+|  eshop/backend/server.js         |   47 +
+|  screenshots/hardware-spec.png   |  Bin 0 -> 152137 bytes
+|  6 files changed, 1767 insertions(+)
+| 
+* commit bcb44753837c76ab3e8c047af3c0e612358458a0
+  Author: Phat Nguyen <phatnguyen9725@gmail.com>
+  Date:   Sat Aug 8 22:37:07 2026 +0700
+  
+      chore: init project
+  
+   README.md                  |   7 +
+   eshop/.gitignore           |   2 +
+   eshop/backend/database.js  | 157 ++++++++++++
+   eshop/backend/package.json |  20 ++
+   eshop/backend/server.js    | 572 +++++++++++++++++++++++++++++++++++++++++++
+   eshop/docs/api-spec.md     | 214 ++++++++++++++++
+   eshop/docs/requirements.md | 205 ++++++++++++++++
+   eshop/docs/srs.md          | 288 ++++++++++++++++++++++
+   8 files changed, 1465 insertions(+)

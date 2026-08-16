@@ -1,0 +1,44 @@
+{
+  "metadata": {
+    "student_id": "",
+    "group_name": "",
+    "test_type": "",
+    "created_at": "",
+    "updated_at": ""
+  },
+  "environment": {
+    "base_url": "",
+    "os": "",
+    "host_cpu_cores": null,
+    "host_ram_gb": null,
+    "container_cpu_limit": "",
+    "container_memory_limit": "",
+    "k6_version": "",
+    "node_version": ""
+  },
+  "endpoint": {
+    "method": "",
+    "path": "",
+    "requires_auth": null,
+    "auth_strategy": "",
+    "payload_schema": {}
+  },
+  "baseline": {
+    "p50_ms": null,
+    "p95_ms": null,
+    "p99_ms": null,
+    "error_rate": null,
+    "rps": null,
+    "run_duration_seconds": 120
+  },
+  "slo": {
+    "p95_threshold_ms": null,
+    "error_rate_threshold": null,
+    "notes": ""
+  },
+  "workload": {
+    "normal_vus": null,
+    "peak_vus": null,
+    "stages": []
+  }
+}

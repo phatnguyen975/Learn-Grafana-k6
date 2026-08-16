@@ -1,0 +1,4 @@
+Link to Repository: https://github.com/phatnguyen975/Learn-Playwright/tree/main/demo
+Note:
+- Repository này chỉ dùng để lưu trữ kết quả bài tập sau khi đã hoàn thành. Còn trong quá trình làm thì sẽ init một local Git Repository trong máy và commit riêng.
+- Các HTML report của Playwright không được upload lên Repository này, mà được nộp chung với bài nộp.

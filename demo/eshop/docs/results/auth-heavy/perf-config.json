@@ -1,0 +1,57 @@
+{
+  "metadata": {
+    "student_id": "23127449",
+    "group_name": "auth-heavy",
+    "test_type": "stress",
+    "created_at": "2026-08-15T03:32:04+07:00",
+    "updated_at": "2026-08-15T03:32:04+07:00"
+  },
+  "environment": {
+    "base_url": "http://localhost:3000",
+    "os": "Windows 11 + Ubuntu 24.04 (WSL2)",
+    "host_cpu_cores": 8,
+    "host_ram_gb": 16,
+    "container_cpu_limit": "2.0",
+    "container_memory_limit": "1GB",
+    "k6_version": "v2.0.0",
+    "node_version": "v24.16.0"
+  },
+  "endpoint": {
+    "method": "POST",
+    "path": "/api/register",
+    "requires_auth": false,
+    "auth_strategy": "none",
+    "payload_schema": {
+      "name": "string",
+      "email": "string",
+      "password": "string"
+    }
+  },
+  "baseline": {
+    "p50_ms": 19.82,
+    "p95_ms": 31.75,
+    "p99_ms": null,
+    "error_rate": 0,
+    "rps": 44.36,
+    "run_duration_seconds": 120
+  },
+  "slo": {
+    "p95_threshold_ms": 200,
+    "error_rate_threshold": 5,
+    "notes": "p95_threshold = (baseline_p95 * 3) + 100ms Auth-intensive buffer. baseline_p95 = 31.75ms."
+  },
+  "workload": {
+    "normal_vus": 10,
+    "peak_vus": 130,
+    "stages": [
+      { "duration": "2m", "target": 10 },
+      { "duration": "2m", "target": 15 },
+      { "duration": "2m", "target": 25 },
+      { "duration": "2m", "target": 40 },
+      { "duration": "2m", "target": 60 },
+      { "duration": "2m", "target": 90 },
+      { "duration": "2m", "target": 130 },
+      { "duration": "1m", "target": 0 }
+    ]
+  }
+}
